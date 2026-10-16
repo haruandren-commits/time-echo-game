@@ -19,7 +19,27 @@
     <div class="actions"><button id="action">記録を始める</button><button id="undo">1手戻す</button><button id="reset">やり直す</button></div>
   </section>
   <details><summary>このステージのヒント</summary><p id="hint"></p></details>
-  <dialog id="guide"><h2>過去の自分と、脱出しよう</h2><p>①「記録を始める」で最大8手を記録。待つ操作も1手です。</p><p>②「再生して協力」でふたりがスタートへ戻ります。あなたが1手動くと、過去も1手再生します。記録後の過去はその場に残ります。</p><p>③ 扉は表示された状態で通れます。その後に過去が動き、次の手の扉が決まります。壁や閉じた扉への移動では時間は進みません。</p><p>🟣 あなた ／ 👻 過去 ／ ⭐ ゴール<br>A・B・C スイッチ ／ ①・② 扉</p><p>「待」は過去がその上で待つと反応。「過」は過去専用、「今」はあなた専用です。時計付きの扉は、表示された残り手数以内に通りましょう。閉じた扉の上からも外へ出られます。</p><p>キーボード：矢印で移動、Wキーで待つ。「1手戻す」は再生中にも使えます。</p><form method="dialog"><button>閉じる</button></form></dialog>
+  <dialog id="guide" aria-labelledby="guide-title">
+    <h2 id="guide-title">遊び方を確認</h2>
+    <p>🟣 あなた ／ 👻 記録を再生する過去<br>スイッチで扉を開き、⭐へ進もう。</p>
+    <button id="practice">操作しながら練習する</button>
+    <details><summary>短いルール集</summary>
+      <p>記録は最大8手。「待つ」も1手です。あなたが動くと、過去も1手再生。再生後の過去はその場に残ります。</p>
+      <p>扉は今の表示で通れます。行動後に過去が動き、次の手の扉が決まります。壁への移動は時間が進みません。</p>
+      <p>「過」は過去専用、「今」はあなた専用。「待」は過去がそこで待つと反応。時計付きの扉は残り手数以内に通ろう。</p>
+      <p>困ったら「1手戻す」。扉や過去も戻ります。閉じた扉の上からも外へ出られます。矢印キーで移動、Wキーで待つ。</p>
+    </details>
+    <form method="dialog"><button>ゲームに戻る</button></form>
+  </dialog>
+  <dialog id="tutorial" aria-labelledby="tutorial-title">
+    <div class="tutorial-heading"><h2 id="tutorial-title">操作して覚えよう</h2><button id="tutorial-skip">スキップ</button></div>
+    <p class="practice-note">練習専用です。今のゲームは変わりません。</p>
+    <p id="tutorial-message" role="status" aria-live="polite"></p>
+    <div id="tutorial-board" role="img" aria-label="練習用の盤面"></div>
+    <p id="tutorial-status"></p>
+    <div class="tutorial-controls"><button id="tutorial-record">記録を始める</button><button id="tutorial-right" aria-label="練習で右へ移動">右へ →</button><button id="tutorial-replay">再生して協力</button></div>
+    <button id="tutorial-finish" hidden>練習完了・ゲームに戻る</button>
+  </dialog>
 </main>
 <script type="module" src="app.mjs"></script>
 </body>

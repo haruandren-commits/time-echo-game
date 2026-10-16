@@ -5,9 +5,24 @@ const http=require('node:http');
 const fs=require('node:fs');
 const path=require('node:path');
 const root=path.resolve(__dirname,'..');
-const assets={'/':'index.html','/index.html':'index.html','/app.mjs':'app.mjs','/game.mjs':'game.mjs','/style.css':'style.css'};
+const assets={'/':'index.html','/index.html':'index.html','/app.mjs':'app.mjs','/game.mjs':'game.mjs','/tutorial.mjs':'tutorial.mjs','/style.css':'style.css'};
 const types={'.html':'text/html; charset=utf-8','.mjs':'text/javascript; charset=utf-8','.css':'text/css; charset=utf-8'};
 const solutions=[['RR','RRRRR'],['RRW','RRUURR'],['WWWU','RRRRUUR'],['UUR','RRWRRR'],['UUWRR','RRWRRRUUU']];
+async function snapshot(page){
+ return page.evaluate(()=>Object.fromEntries(['stage','status','doors','board','record','toast'].map(id=>[id,document.getElementById(id).innerHTML])));
+}
+async function finishPractice(page){
+ assert.equal(await page.locator('#tutorial').evaluate(e=>e.open),true);
+ await page.locator('#tutorial-record').tap();
+ await page.locator('#tutorial-right').tap();await page.locator('#tutorial-right').tap();
+ assert.match(await page.locator('#tutorial-message').innerText(),/再生して協力/);
+ await page.locator('#tutorial-replay').tap();
+ for(let j=0;j<2;j++)await page.locator('#tutorial-right').tap();
+ assert.match(await page.locator('#tutorial-status').innerText(),/扉開/);
+ for(let j=0;j<3;j++)await page.locator('#tutorial-right').tap();
+ assert.match(await page.locator('#tutorial-message').innerText(),/クリア/);
+ await page.locator('#tutorial-finish').tap();
+}
 (async()=>{
  const server=http.createServer((req,res)=>{
    const file=assets[req.url];if(!file){res.writeHead(404).end();return;}
@@ -21,7 +36,14 @@ const solutions=[['RR','RRRRR'],['RRW','RRUURR'],['WWWU','RRRRUUR'],['UUR','RRWR
    const page=await browser.newPage({viewport:{width,height},isMobile:true,hasTouch:true,deviceScaleFactor:2});
    const errors=[];page.on('pageerror',e=>errors.push(e.message));
    const response=await page.goto(`http://127.0.0.1:${server.address().port}/`);
-   assert.equal(response.status(),200);await page.waitForSelector('.cell');assert.equal(await page.locator('.cell').count(),36);
+   assert.equal(response.status(),200);await page.waitForSelector('.cell');assert.equal(await page.locator('#board .cell').count(),36);
+   const initialGame=await snapshot(page);
+   await page.keyboard.press('ArrowRight');await page.keyboard.press('w');
+   assert.deepEqual(await snapshot(page),initialGame);
+   await page.screenshot({path:`/tmp/time-echo-tutorial-${width}.png`,fullPage:true});
+   await finishPractice(page);assert.deepEqual(await snapshot(page),initialGame);
+   await page.reload();await page.waitForSelector('#board .cell');
+   assert.equal(await page.locator('#tutorial').evaluate(e=>e.open),false);
    for(let i=0;i<5;i++){
      await page.locator('#action').tap();
      // Record, undo a wait, and confirm the limit can be reached and undone.
@@ -33,6 +55,14 @@ const solutions=[['RR','RRRRR'],['RRW','RRUURR'],['WWWU','RRRRUUR'],['UUR','RRWR
        for(let j=0;j<8;j++)await page.locator('#undo').tap();
      }
      for(const key of solutions[i][0])await page.locator(`[data-key=${key}]`).tap();
+     assert.ok((await page.locator('#toast').innerText()).length>0);
+     if(i===2||i===3){
+       const saved=await snapshot(page);
+       await page.locator('#help').tap();await page.locator('#practice').tap();
+       if(i===2){await page.locator('#tutorial-record').tap();await page.locator('#tutorial-right').tap();await page.locator('#tutorial-skip').tap();}
+       else await finishPractice(page);
+       assert.deepEqual(await snapshot(page),saved,'practice must preserve the in-progress stage');
+     }
      await page.locator('#action').tap();
      for(const key of solutions[i][1])await page.locator(`[data-key=${key}]`).tap();
      assert.equal(await page.locator('#status').innerText(),'クリア！');
@@ -51,15 +81,33 @@ const solutions=[['RR','RRRRR'],['RRW','RRUURR'],['WWWU','RRRRUUR'],['UUR','RRWR
      await page.locator('#action').tap();
    }
    assert.match(await page.locator('#stage').innerText(),/1 \/ 5/);
-   await page.locator('#help').tap();assert.equal(await page.locator('dialog').evaluate(e=>e.open),true);
-   await page.locator('dialog button').tap();
+   await page.locator('#help').tap();assert.equal(await page.locator('#guide').evaluate(e=>e.open),true);
+   await page.locator('#guide form button').tap();
    await page.locator('#action').tap();await page.locator('[data-key=R]').tap();await page.locator('#reset').tap();
    assert.match(await page.locator('#status').innerText(),/準備中/);
    assert.equal(await page.locator('#undo').isDisabled(),true);
    await page.screenshot({path:`/tmp/time-echo-${width}x${height}.png`,fullPage:true});
    assert.deepEqual(errors,[]);
-   console.log(`${width}x${height}: all 5 stages, undo, reset, help, touch controls and viewport PASS`);
+   console.log(`${width}x${height}: tutorial, skip/resume, all 5 stages, undo, reset and viewport PASS`);
    await page.close();
  }
+ // Skipping before any action and storage being unavailable must both be safe.
+ const restricted=await browser.newPage({viewport:{width:375,height:667},isMobile:true,hasTouch:true});
+ await restricted.addInitScript(()=>{
+   Storage.prototype.getItem=()=>{throw new Error('storage denied')};
+   Storage.prototype.setItem=()=>{throw new Error('storage denied')};
+ });
+ const restrictedErrors=[];restricted.on('pageerror',e=>restrictedErrors.push(e.message));
+ await restricted.goto(`http://127.0.0.1:${server.address().port}/`);
+ await restricted.locator('#tutorial-skip').tap();
+ await restricted.locator('#action').tap();await restricted.locator('[data-key=R]').tap();
+ assert.match(await restricted.locator('#status').innerText(),/1 \/ 8/);
+ await restricted.locator('#help').tap();await restricted.locator('#practice').tap();
+ await restricted.keyboard.press('Escape');
+ assert.equal(await restricted.locator('#tutorial').evaluate(e=>e.open),false);
+ assert.deepEqual(restrictedErrors,[]);
+ console.log('First-step skip, Escape dismissal and unavailable storage: PASS');
+ await restricted.close();
+
  }finally{if(browser)await browser.close();await new Promise(resolve=>server.close(resolve));}
 })().catch(e=>{console.error(e);process.exitCode=1;});

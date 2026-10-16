@@ -39,3 +39,20 @@ details p { line-height:1.7; margin:4px 0 10px }
 dialog { width:min(92%,440px); max-height:85dvh; border:1px solid #8790b8; background:#232842; color:#fff; border-radius:16px; padding:20px; line-height:1.7; font-size:14px }
 dialog::backdrop { background:#080a18bb }
 dialog h2 { font-size:18px; margin-top:0 }dialog button { width:100% }
+/* Practice is a separate, skippable board; game controls stay untouched below. */
+#tutorial { padding:12px; max-height:calc(100dvh - 24px); line-height:1.5 }
+.tutorial-heading { display:flex; align-items:center; justify-content:space-between; gap:8px }
+.tutorial-heading h2 { margin:0; font-size:17px }
+#tutorial-skip { width:auto; padding:0 10px; font-size:12px }
+.practice-note { color:#cbd0e7; font-size:11px; margin:4px 0 }
+#tutorial-message { font-size:14px; min-height:63px; margin:6px 0 }
+#tutorial-board { width:min(100%,210px); aspect-ratio:1; display:grid; grid-template-columns:repeat(6,1fr); grid-template-rows:repeat(6,1fr); gap:3px; padding:4px; background:#393e5c; border-radius:12px; margin:auto }
+#tutorial-board .cell { font-size:19px }
+#tutorial-board .actors.both { font-size:15px }
+#tutorial-status { font-size:12px; margin:6px 0 }
+.tutorial-controls { display:grid; grid-template-columns:1fr 1fr; gap:6px }
+#tutorial-replay { grid-column:1 / -1 }
+.tutorial-controls button { font-size:12px }
+.next-operation { outline:3px solid #ffda9b; outline-offset:-3px; background:#f6bf74; color:#26233b }
+#tutorial-finish { margin-top:6px }
+#guide form { margin-top:10px }
