@@ -1,7 +1,46 @@
-<!doctype html><html lang="ja"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1"><meta name="theme-color" content="#15172b"><title>8秒前のワタシ</title><style>*{box-sizing:border-box}body{margin:0;min-height:100dvh;background:radial-gradient(circle at 50% 0%,#34365d,#15172b 60%);color:#fff;font-family:-apple-system,BlinkMacSystemFont,'Hiragino Kaku Gothic ProN',sans-serif;display:flex;justify-content:center}main{width:min(100%,460px);padding:22px 17px 35px;text-align:center}h1{font-size:29px;letter-spacing:.07em;margin:8px 0 5px}.sub{color:#b8bad7;font-size:12px;margin:0 0 18px}.status{border:1px solid #575978;background:#292b48;border-radius:15px;padding:12px;margin-bottom:15px;font-size:14px;line-height:1.7}#board{display:grid;grid-template-columns:repeat(6,1fr);gap:5px;background:#393b59;border-radius:18px;padding:8px;box-shadow:0 12px 35px #090a1a80;touch-action:manipulation}.cell{aspect-ratio:1;display:flex;align-items:center;justify-content:center;border-radius:9px;background:#23253c;font-size:clamp(19px,6vw,30px);position:relative}.wall{background:#535574}.plate{background:#265b62}.gate{background:#a94f75}.gate.open{background:#317d72}.goal{background:#55467c}.person{filter:drop-shadow(0 2px 3px #0007)}.ghost{opacity:.72;filter:drop-shadow(0 0 7px #75f3e4)}.legend{display:flex;justify-content:center;gap:12px;flex-wrap:wrap;font-size:11px;color:#c4c5dd;margin:13px 0 15px}.controls{display:grid;grid-template-columns:repeat(3,64px);gap:7px;justify-content:center;margin:8px 0 16px}.controls button{height:53px;font-size:24px}.controls .up{grid-column:2}.controls .left{grid-column:1;grid-row:2}.controls .down{grid-column:2;grid-row:2}.controls .right{grid-column:3;grid-row:2}button{border:0;border-radius:13px;background:#4e527f;color:#fff;font-weight:700;cursor:pointer;touch-action:manipulation}button:active{transform:scale(.96)}button:disabled{opacity:.38}#action{width:100%;background:#f6bf74;color:#26233b;font-size:16px;padding:15px;margin-bottom:10px}.secondary{padding:11px 14px;background:#343654;color:#e5e5f1;margin:4px}.hint{font-size:12px;color:#c6c6dd;line-height:1.8;margin:12px auto;max-width:350px}.toast{min-height:27px;color:#ffda9b;font-size:13px}.small{font-size:11px;color:#9396b9;margin-top:16px}</style></head><body><main><h1>8秒前のワタシ</h1><p class="sub">過去の自分が、未来の自分を救う。</p><div class="status" id="status"></div><div id="board" aria-label="6×6のゲーム盤"></div><div class="legend"><span>🟣 あなた</span><span>👻 過去の自分</span><span>🟢 スイッチ</span><span>🚪 扉</span><span>⭐ ゴール</span></div><div class="toast" id="toast"></div><div class="controls"><button class="up" data-d="0,-1" aria-label="上">↑</button><button class="left" data-d="-1,0" aria-label="左">←</button><button class="down" data-d="0,1" aria-label="下">↓</button><button class="right" data-d="1,0" aria-label="右">→</button></div><button id="action">過去の動きを記録する</button><div><button class="secondary" id="undo">1手戻す</button><button class="secondary" id="reset">最初から</button></div><p class="hint">① 最初の8手でスイッチへ向かおう。② 記録を終えると、過去の自分が同じ動きを再生。③ 過去の自分にスイッチを踏ませて、今の自分は扉を通ろう！</p><p class="small">無料のオリジナル試作品・通信不要・音なし</p></main><script>
-const levels=[{start:[0,2],plate:[2,2],gate:[4,2],goal:[5,2],walls:[[3,0],[3,1],[3,3],[3,4],[3,5]],name:'はじめての協力'},{start:[0,4],plate:[2,1],gate:[4,3],goal:[5,3],walls:[[3,0],[3,1],[3,2],[3,4],[3,5],[1,3]],name:'遠回りの約束'},{start:[0,5],plate:[1,1],gate:[4,1],goal:[5,1],walls:[[3,0],[3,2],[3,3],[3,4],[3,5],[2,3]],name:'最後の一歩'}];
-let idx=0,phase='ready',pos,ghost,record=[],steps=0,history=[],completed=false;const $=id=>document.getElementById(id);const same=(a,b)=>a&&b&&a[0]===b[0]&&a[1]===b[1];const lvl=()=>levels[idx];const blocked=p=>p[0]<0||p[0]>5||p[1]<0||p[1]>5||lvl().walls.some(w=>same(w,p));function say(s){$('toast').textContent=s}function init(){phase='ready';pos=[...lvl().start];ghost=null;record=[];steps=0;history=[];completed=false;say('まず「過去の動きを記録する」をタップ');draw()}function gateOpen(){return phase==='play'&&same(ghost,lvl().plate)}function draw(){const b=$('board');b.innerHTML='';for(let y=0;y<6;y++)for(let x=0;x<6;x++){const p=[x,y],e=document.createElement('div');e.className='cell';let txt='';if(lvl().walls.some(w=>same(w,p))){e.classList.add('wall');txt='';}else if(same(p,lvl().plate)){e.classList.add('plate');txt='🟢'}else if(same(p,lvl().gate)){e.classList.add('gate');if(gateOpen())e.classList.add('open');txt=gateOpen()?'🔓':'🚪'}else if(same(p,lvl().goal)){e.classList.add('goal');txt='⭐'}if(same(ghost,p)){txt='👻';e.classList.add('ghost')}if(same(pos,p)){txt='🟣';e.classList.add('person')}e.textContent=txt;b.appendChild(e)}let t=phase==='ready'?'準備中':phase==='record'?'過去を記録中':phase==='play'?'過去と協力中':'クリア！';$('status').innerHTML='<b>ステージ '+(idx+1)+' / '+levels.length+'：'+lvl().name+'</b><br>'+t+'　｜　'+(phase==='record'?'記録 '+record.length+' / 8 手':phase==='play'?'現在 '+steps+' 手':'') ;$('action').textContent=phase==='ready'?'過去の動きを記録する':phase==='record'?'記録を終えて、未来へ進む':phase==='play'?'過去を記録し直す':idx<levels.length-1?'次のステージへ':'もう一度遊ぶ';$('undo').disabled=phase!=='record'||record.length===0}
-function startPlay(){phase='play';pos=[...lvl().start];ghost=[...lvl().start];steps=0;history=[];say('過去の自分は、あなたが動くたびに1手ずつ進みます');draw()}
-function move(dx,dy){if(phase!=='record'&&phase!=='play')return;if(phase==='record'&&record.length>=8)return;let next=[pos[0]+dx,pos[1]+dy];if(blocked(next)) {say('そこには進めません');return}if(phase==='record'){if(same(next,lvl().gate)){say('記録中は扉を通れません');return}pos=next;record.push([dx,dy]);say(record.length===8?'8手記録完了！未来へ進もう':'あと'+(8-record.length)+'手まで記録できます');draw();return}if(same(next,lvl().gate)&&!gateOpen()){say('扉が閉まっています。過去の自分をスイッチへ！');return}history.push({pos:[...pos],ghost:[...ghost],steps});pos=next;if(steps<record.length){let d=record[steps];ghost=[ghost[0]+d[0],ghost[1]+d[1]]}steps++;if(same(pos,lvl().goal)){phase='won';completed=true;say('🎉 成功！ 過去の自分と脱出できた！')}else if(gateOpen())say('扉が開いた！ 今がチャンス！');else say('過去の自分とタイミングを合わせよう');draw()}
-$('action').onclick=()=>{if(phase==='ready'){phase='record';say('矢印で最大8手、過去の動きを記録！');draw()}else if(phase==='record'){if(!record.length){say('最低1手、動きを記録してね');return}startPlay()}else if(phase==='play'){init();phase='record';say('過去の動きを記録し直そう');draw()}else{idx=(idx+1)%levels.length;init()}};$('undo').onclick=()=>{if(phase!=='record'||!record.length)return;let d=record.pop();pos=[pos[0]-d[0],pos[1]-d[1]];say('1手戻しました');draw()};$('reset').onclick=()=>init();document.querySelectorAll('[data-d]').forEach(btn=>btn.onclick=()=>move(...btn.dataset.d.split(',').map(Number)));document.addEventListener('keydown',e=>{const dirs={ArrowUp:[0,-1],ArrowDown:[0,1],ArrowLeft:[-1,0],ArrowRight:[1,0]};if(dirs[e.key]){e.preventDefault();move(...dirs[e.key])}});init();
-</script></body></html>
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#15172b">
+<title>8秒前のワタシ</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<main>
+  <header><div><h1>8秒前のワタシ</h1><p>秒ではなく、あなたの1手で進む時間。</p></div><button id="help" aria-label="遊び方を開く">？</button></header>
+  <section class="status" aria-label="進行状況"><strong id="stage"></strong><div id="status"></div><div id="doors"></div></section>
+  <div id="board" role="img" aria-label="6×6のゲーム盤"></div>
+  <p id="toast" role="status" aria-live="polite"></p>
+  <div class="record" id="record" aria-label="記録した動き"></div>
+  <section class="console" aria-label="操作パネル">
+    <div class="controls"><button data-key="U" class="up" aria-label="上">↑</button><button data-key="L" class="left" aria-label="左">←</button><button data-key="W" class="wait" aria-label="待つ">待つ</button><button data-key="R" class="right" aria-label="右">→</button><button data-key="D" class="down" aria-label="下">↓</button></div>
+    <div class="actions"><button id="action">記録を始める</button><button id="undo">1手戻す</button><button id="reset">やり直す</button></div>
+  </section>
+  <details><summary>このステージのヒント</summary><p id="hint"></p></details>
+  <dialog id="guide" aria-labelledby="guide-title">
+    <h2 id="guide-title">遊び方を確認</h2>
+    <p>🟣 あなた ／ 👻 記録を再生する過去<br>スイッチで扉を開き、⭐へ進もう。</p>
+    <button id="practice">操作しながら練習する</button>
+    <details><summary>短いルール集</summary>
+      <p>記録は最大8手。「待つ」も1手です。あなたが動くと、過去も1手再生。再生後の過去はその場に残ります。</p>
+      <p>扉は今の表示で通れます。行動後に過去が動き、次の手の扉が決まります。壁への移動は時間が進みません。</p>
+      <p>「過」は過去専用、「今」はあなた専用。「待」は過去がそこで待つと反応。時計付きの扉は残り手数以内に通ろう。</p>
+      <p>困ったら「1手戻す」。扉や過去も戻ります。閉じた扉の上からも外へ出られます。矢印キーで移動、Wキーで待つ。</p>
+    </details>
+    <form method="dialog"><button>ゲームに戻る</button></form>
+  </dialog>
+  <dialog id="tutorial" aria-labelledby="tutorial-title">
+    <div class="tutorial-heading"><h2 id="tutorial-title">操作して覚えよう</h2><button id="tutorial-skip">スキップ</button></div>
+    <p class="practice-note">練習専用です。今のゲームは変わりません。</p>
+    <p id="tutorial-message" role="status" aria-live="polite"></p>
+    <div id="tutorial-board" role="img" aria-label="練習用の盤面"></div>
+    <p id="tutorial-status"></p>
+    <div class="tutorial-controls"><button id="tutorial-record">記録を始める</button><button id="tutorial-right" aria-label="練習で右へ移動">右へ →</button><button id="tutorial-replay">再生して協力</button></div>
+    <button id="tutorial-finish" hidden>練習完了・ゲームに戻る</button>
+  </dialog>
+</main>
+<script type="module" src="app.mjs"></script>
+</body>
+</html>
